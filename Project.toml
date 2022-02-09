@@ -3,6 +3,10 @@ uuid = "82f0014e-ea2f-4068-b3c4-8530e4b1bb6a"
 authors = ["Bon Leif Amalla <bonleifamalla@gmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+Chemfiles = "46823bd8-5fb3-5f92-9aa0-96921f3dd015"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
 [compat]
 julia = "1.7"
 
