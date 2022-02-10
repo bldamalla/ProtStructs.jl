@@ -1,13 +1,5 @@
 ## Model.jl --- copy model for protein structures
 
-struct StructureFrame
-    step::UInt64                    ## timestep probed (only one for PDB)
-    at_pos::Vector{SVector{3,<:AbstractFloat}}
-    at_list::Vector{JAtom}
-    res_list::Vector{JResidue}
-    top::JConnectivity
-end
-
 """
     JAtom{T<:AbstractFloat}
 
@@ -40,22 +32,6 @@ struct JResidue
     at_list::Vector{UInt64}
 end
 
-"""
-    JTopology
-
-Topology of atoms in the probed frame. Contains bonds and their respective
-`BondClass`es, angles, dihedrals, and improper dihedrals. The four connectivity
-types are represented by `NTuple{N,UInt16}` containing indices of atoms in the
-probed frame.
-"""
-struct JConnectivity
-    bonds::Vector{NTuple{2,UInt64}}
-    bondclasses::Vector{BondClass}
-    angles::Vector{NTuple{3,UInt64}}
-    dihedrals::Vector{NTuple{4,UInt64}}
-    impropers::Vector{NTuple{4,UInt64}}
-end
-
 ### BondClass enum
 """
     BondClass
@@ -74,5 +50,29 @@ Bond classes. See source for the list. This is used to describe bonds in a
     Dative_L        ## dative bonds where e- are localized to latter atom
     Amide
     Aromatic
+end
+
+"""
+    JTopology
+
+Topology of atoms in the probed frame. Contains bonds and their respective
+`BondClass`es, angles, dihedrals, and improper dihedrals. The four connectivity
+types are represented by `NTuple{N,UInt16}` containing indices of atoms in the
+probed frame.
+"""
+struct JConnectivity
+    bonds::Vector{NTuple{2,UInt64}}
+    bondclasses::Vector{BondClass}
+    angles::Vector{NTuple{3,UInt64}}
+    dihedrals::Vector{NTuple{4,UInt64}}
+    impropers::Vector{NTuple{4,UInt64}}
+end
+
+struct StructureFrame
+    step::UInt64                    ## timestep probed (only one for PDB)
+    at_pos::Vector{SVector{3,<:AbstractFloat}}
+    at_list::Vector{JAtom}
+    res_list::Vector{JResidue}
+    top::JConnectivity
 end
 
