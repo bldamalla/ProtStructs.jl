@@ -1,5 +1,8 @@
 ## Model.jl --- copy model for protein structures
 
+export extractframe
+export JAtom, JResidue, JConnectivity, StructureFrame
+
 """
     JAtom{T<:AbstractFloat}
 
@@ -10,12 +13,11 @@ obtained from Chemfiles inference given atom type.
 **Note**: charge of an atom is `e * jatom.charge` with `e` as elementary charge.
 """
 struct JAtom{T<:AbstractFloat}   ## make this mutable??
-    hetatm::Bool                 ## whether atom is part of the protein/NA
     name::String
     type::String
     mass::T
     charge::T
-    parent_res::UInt64          ## index of parent residue in frame topology
+    parent_res::Union{Nothing,UInt64}   # parent residue index in topology
 end
 
 """
@@ -30,39 +32,19 @@ struct JResidue
     name::String
     chainid::Union{String,Missing}
     at_list::Vector{UInt64}
-end
-
-### BondClass enum
-"""
-    BondClass
-
-Bond classes. See source for the list. This is used to describe bonds in a
-`JConnectivity`.
-"""
-@enum BondClass begin
-    Unknown
-    Single
-    Double
-    Triple          ## alkynes, coordination complexes, metals, etc.
-    Quadruple       ## apparently metals (cannot overlook in cofactors, etc.)
-    Quintuple       ## apparently metals (cannot overlook in cofactors, etc.)
-    Dative_P        ## dative bonds where e- are localized to prior atom
-    Dative_L        ## dative bonds where e- are localized to latter atom
-    Amide
-    Aromatic
+    standard_pdb::Union{Bool,Nothing}
 end
 
 """
-    JTopology
+    JConnectivity
 
-Topology of atoms in the probed frame. Contains bonds and their respective
-`BondClass`es, angles, dihedrals, and improper dihedrals. The four connectivity
-types are represented by `NTuple{N,UInt16}` containing indices of atoms in the
+Topology of atoms in the probed frame. Contains bonds,
+angles, dihedrals, and improper dihedrals. The four connectivity
+types are represented by `NTuple{N,UInt64}` containing indices of atoms in the
 probed frame.
 """
 struct JConnectivity
     bonds::Vector{NTuple{2,UInt64}}
-    bondclasses::Vector{BondClass}
     angles::Vector{NTuple{3,UInt64}}
     dihedrals::Vector{NTuple{4,UInt64}}
     impropers::Vector{NTuple{4,UInt64}}
@@ -74,5 +56,75 @@ struct StructureFrame
     at_list::Vector{JAtom}
     res_list::Vector{JResidue}
     top::JConnectivity
+end
+
+"""
+    extractframe(fr::Chemfiles.Frame)
+
+Extract `Chemfiles.Frame` to get objects of structs defined in the package.
+Note that not all properties will be inherited/converted.
+"""
+function extractframe(fr::Chemfiles.Frame)
+    step_ = step(fr)    # frame step
+    sz = size(fr)
+
+    ## get topology and get residue/connectivity
+    top = read(fr)
+    res_list_ = [JResidue(Chemfiles.Residue(top, i)) for i in 1:Chemfiles.count_residues(top)]
+    conn = JConnectivity(top)
+
+    ## get positions and list of atoms; assert equal size
+    pos = Chemfiles.positions(fr)
+    pos_ = map(SVector{3}, Iterators.partition(pos, 3))
+
+    ### get residues where atoms are and create from Chemfiles data
+    res_handles = Vector{Union{Nothing,UInt64}}(nothing, sz)
+    populatehandles!(res_handles, res_list_)
+    at_list_ = map(enumerate(res_handles)) do (atom, handle)
+        JAtom(Chemfiles.Atom(fr, atom), handle; pdb=pdb)
+    end
+
+    @assert length(pos_) == length(at_list_) "atom and positions list sizes differ"
+
+    return StructureFrame(step_, pos_, at_list_, res_list, conn)
+end
+
+function populatehandles!(vec, list)
+    for (idx, res) in enumerate(list)
+        for at_idx in res.at_list
+            @inbounds vec[at_idx] = idx
+        end
+    end
+end
+
+function JAtom(atom::Chemfiles.Atom, handle)
+    name_ = Chemfiles.name(atom)
+    type_ = Chemfiles.type(atom)
+    mass_ = Chemfiles.mass(atom)
+    charge_ = Chemfiles.charge(atom)
+    return JAtom(name_, type_ , mass_, charge_, handle)
+end
+
+function JResidue(res::Chemfiles.Residue)
+    plist = Chemfiles.list_properties(res)
+
+    name_ = Chemfiles.name(res)
+    chain_id_ = let kw = "chainid"
+        ifelse(kw in plist, Chemfiles.property(res, kw), missing)
+    end
+    at_list = Chemfiles.atoms(res)
+    pdb_ = let kw = "is_standard_pdb"
+        ifelse(kw in plist, Chemfiles.property(res, kw), nothing)
+    end
+    return JResidue(name_, chainid_, at_list, pdb_)
+end
+
+function JConnectivity(top::Chemfiles.Topology)
+    bonds_ = map(tuple, Iterators.partition(Chemfiles.bonds(top), 2))
+    angles_ = map(tuple, Iterators.partition(Chemfiles.angles(top), 3))
+    dihedrals_ = map(tuple, Iterators.partition(Chemfiles.dihedrals(top), 4))
+    impropers_ = map(tuple, Iterators.partition(Chemfiles.impropers(top), 4))
+
+    return JConnectivity(bonds_, angles_, dihedrals_, impropers_)
 end
 
