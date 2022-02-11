@@ -46,13 +46,14 @@
         end
 
         ## check connectivity information
-        @test bonds_count(top) == length(extracted.bonds)
-        @test angles_count(top) == length(extracted.angles)
-        @test dihedrals_count(top) == length(extracted.dihedrals)
-        @test impropers_count(top) == length(extracted.impropers)
+        conn = extracted.conn
+        @test bonds_count(top) == length(conn.bonds)
+        @test angles_count(top) == length(conn.angles)
+        @test dihedrals_count(top) == length(conn.dihedrals)
+        @test impropers_count(top) == length(conn.impropers)
         @test let Q = reinterpret(reshape, NTuple{2,UInt64}, bonds(top))
             flag = true
-            for (ch_, ext_) in zip(Q, extracted.bonds)
+            for (ch_, ext_) in zip(Q, conn.bonds)
                 flag &= (ch_ == ext_)
                 flag || break
             end
@@ -60,7 +61,7 @@
         end
         @test let Q = reinterpret(reshape, NTuple{3,UInt64}, angles(top))
             flag = true
-            for (ch_, ext_) in zip(Q, extracted.angles)
+            for (ch_, ext_) in zip(Q, conn.angles)
                 flag &= (ch_ == ext_)
                 flag || break
             end
@@ -68,7 +69,7 @@
         end
         @test let Q = reinterpret(reshape, NTuple{4,UInt64}, dihedrals(top))
             flag = true
-            for (ch_, ext_) in zip(Q, extracted.dihedrals)
+            for (ch_, ext_) in zip(Q, conn.dihedrals)
                 flag &= (ch_ == ext_)
                 flag || break
             end
@@ -76,7 +77,7 @@
         end
         @test let Q = reinterpret(reshape, NTuple{4,UInt64}, impropers(top))
             flag = true
-            for (ch_, ext_) in zip(Q, extracted.impropers)
+            for (ch_, ext_) in zip(Q, conn.impropers)
                 flag &= (ch_ == ext_)
                 flag || break
             end

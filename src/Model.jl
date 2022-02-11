@@ -55,7 +55,7 @@ struct StructureFrame
     at_pos::Vector{SVector{3,<:AbstractFloat}}
     at_list::Vector{JAtom}
     res_list::Vector{JResidue}
-    top::JConnectivity
+    conn::JConnectivity
 end
 
 """
@@ -69,8 +69,8 @@ function extractframe(fr::Chemfiles.Frame)
     sz = size(fr)
 
     ## get topology and get residue/connectivity
-    top = read(fr)
-    res_list_ = [JResidue(Chemfiles.Residue(top, i)) for i in 1:Chemfiles.count_residues(top)]
+    top = Chemfiles.Topology(fr)
+    res_list_ = [JResidue(Chemfiles.Residue(top, i-1)) for i in 1:Chemfiles.count_residues(top)]
     conn = JConnectivity(top)
 
     ## get positions and list of atoms; assert equal size
@@ -81,18 +81,18 @@ function extractframe(fr::Chemfiles.Frame)
     res_handles = Vector{Union{Nothing,UInt64}}(nothing, sz)
     populatehandles!(res_handles, res_list_)
     at_list_ = map(enumerate(res_handles)) do (atom, handle)
-        JAtom(Chemfiles.Atom(fr, atom), handle; pdb=pdb)
+        JAtom(Chemfiles.Atom(fr, atom-1), handle)
     end
 
     @assert length(pos_) == length(at_list_) "atom and positions list sizes differ"
 
-    return StructureFrame(step_, pos_, at_list_, res_list, conn)
+    return StructureFrame(step_, pos_, at_list_, res_list_, conn)
 end
 
 function populatehandles!(vec, list)
     for (idx, res) in enumerate(list)
         for at_idx in res.at_list
-            @inbounds vec[at_idx] = idx
+            @inbounds vec[at_idx+1] = idx
         end
     end
 end
@@ -109,7 +109,7 @@ function JResidue(res::Chemfiles.Residue)
     plist = Chemfiles.list_properties(res)
 
     name_ = Chemfiles.name(res)
-    chain_id_ = let kw = "chainid"
+    chainid_ = let kw = "chainid"
         ifelse(kw in plist, Chemfiles.property(res, kw), missing)
     end
     at_list = Chemfiles.atoms(res)
@@ -120,10 +120,18 @@ function JResidue(res::Chemfiles.Residue)
 end
 
 function JConnectivity(top::Chemfiles.Topology)
-    bonds_ = map(tuple, Iterators.partition(Chemfiles.bonds(top), 2))
-    angles_ = map(tuple, Iterators.partition(Chemfiles.angles(top), 3))
-    dihedrals_ = map(tuple, Iterators.partition(Chemfiles.dihedrals(top), 4))
-    impropers_ = map(tuple, Iterators.partition(Chemfiles.impropers(top), 4))
+    bonds_ = map(Iterators.partition(Chemfiles.bonds(top), 2)) do (i, j)
+        tuple(i, j)
+    end
+    angles_ = map(Iterators.partition(Chemfiles.angles(top), 3)) do (i, j, k)
+        tuple(i, j, k)
+    end
+    dihedrals_ = map(Iterators.partition(Chemfiles.dihedrals(top), 4)) do (i,j,k,l)
+        tuple(i, j, k, l)
+    end
+    impropers_ = map(Iterators.partition(Chemfiles.impropers(top), 4)) do (i,j,k,l)
+        tuple(i, j, k, l)
+    end
 
     return JConnectivity(bonds_, angles_, dihedrals_, impropers_)
 end
