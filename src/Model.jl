@@ -13,11 +13,10 @@ obtained from Chemfiles inference given atom type.
 **Note**: charge of an atom is `e * jatom.charge` with `e` as elementary charge.
 """
 struct JAtom{T<:AbstractFloat}   ## make this mutable??
-    name::String
+    name::Symbol
     type::String
     mass::T
     charge::T
-    parent_res::Union{Nothing,UInt64}   # parent residue index in topology
 end
 
 """
@@ -29,9 +28,9 @@ the chain in which the residue belongs and whether the residue is included in th
 described protein structure.
 """
 struct JResidue
-    name::String
+    name::Symbol
     chainid::Union{String,Missing}
-    at_list::Vector{UInt64}
+    at_dict::Dict{Symbol,UInt64}
     standard_pdb::Union{Bool,Nothing}
 end
 
@@ -70,7 +69,6 @@ function extractframe(fr::Chemfiles.Frame)
 
     ## get topology and get residue/connectivity
     top = Chemfiles.Topology(fr)
-    res_list_ = [JResidue(Chemfiles.Residue(top, i-1)) for i in 1:Chemfiles.count_residues(top)]
     conn = JConnectivity(top)
 
     ## get positions and list of atoms; assert equal size
@@ -78,45 +76,40 @@ function extractframe(fr::Chemfiles.Frame)
     pos_ = map(SVector{3}, Iterators.partition(pos, 3))
 
     ### get residues where atoms are and create from Chemfiles data
-    res_handles = Vector{Union{Nothing,UInt64}}(nothing, sz)
-    populatehandles!(res_handles, res_list_)
-    at_list_ = map(enumerate(res_handles)) do (atom, handle)
-        JAtom(Chemfiles.Atom(fr, atom-1), handle)
-    end
+    at_list_ = [JAtom(Chemfiles.Atom(fr, i-1)) for i in 1:sz]
 
     @assert length(pos_) == length(at_list_) "atom and positions list sizes differ"
+
+    # get residues with atom name dictionary
+    res_list_ = map(1:Chemfiles.count_residues(top)) do i
+        JResidue(Chemfiles.Residue(top, i-1), at_list_)
+    end
 
     return StructureFrame(step_, pos_, at_list_, res_list_, conn)
 end
 
-function populatehandles!(vec, list)
-    for (idx, res) in enumerate(list)
-        for at_idx in res.at_list
-            @inbounds vec[at_idx+1] = idx
-        end
-    end
-end
-
-function JAtom(atom::Chemfiles.Atom, handle)
-    name_ = Chemfiles.name(atom)
+function JAtom(atom::Chemfiles.Atom)
+    name_ = Symbol(Chemfiles.name(atom))
     type_ = Chemfiles.type(atom)
     mass_ = Chemfiles.mass(atom)
     charge_ = Chemfiles.charge(atom)
-    return JAtom(name_, type_ , mass_, charge_, handle)
+    return JAtom(name_, type_ , mass_, charge_)
 end
 
-function JResidue(res::Chemfiles.Residue)
+function JResidue(res::Chemfiles.Residue, reflist)
     plist = Chemfiles.list_properties(res)
 
-    name_ = Chemfiles.name(res)
+    ## atom name dictionary based on reflist (frame atom list)
+    at_dict = Dict(reflist[i+1].name=>i+1 for i in Chemfiles.atoms(res))
+
+    name_ = Symbol(Chemfiles.name(res))
     chainid_ = let kw = "chainid"
         ifelse(kw in plist, Chemfiles.property(res, kw), missing)
     end
-    at_list = Chemfiles.atoms(res)
     pdb_ = let kw = "is_standard_pdb"
         ifelse(kw in plist, Chemfiles.property(res, kw), nothing)
     end
-    return JResidue(name_, chainid_, at_list, pdb_)
+    return JResidue(name_, chainid_, at_dict, pdb_)
 end
 
 function JConnectivity(top::Chemfiles.Topology)
