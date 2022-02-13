@@ -2,6 +2,7 @@
 
 export extractframe
 export JAtom, JResidue, JConnectivity, StructureFrame
+export getatom, setatom!
 
 """
     JAtom{T<:AbstractFloat}
@@ -112,6 +113,24 @@ function JResidue(res::Chemfiles.Residue, reflist)
     return JResidue(name_, chainid_, at_dict, pdb_)
 end
 
+"""
+    getatom(residue, name::Symbol) -> UInt64
+
+Get the _index_ of an atom in the parent frame of the residue that has the
+name provided.
+"""
+getatom(res, s) = res.at_dict[s]
+
+"""
+    setatom!(residue, atom::JAtom, idx)
+
+Sets an atom to a residue. 
+
+**Note**: This does not check if the atom with a given `.name` is already in
+the residue and instead mutates it.
+"""
+addatom!(res, atom::JAtom, idx) = (res.at_dict[atom.name] = idx)
+
 function JConnectivity(top::Chemfiles.Topology)
     bonds_ = map(Iterators.partition(Chemfiles.bonds(top), 2)) do (i, j)
         tuple(i, j)
@@ -128,4 +147,7 @@ function JConnectivity(top::Chemfiles.Topology)
 
     return JConnectivity(bonds_, angles_, dihedrals_, impropers_)
 end
+
+### extension models
+include("extensions/HBond.jl")
 
