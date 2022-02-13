@@ -66,10 +66,58 @@ Index of the residue (in a given topology) is `this.handle`.
 **Note**: Values of `N` that make sense are ``1`` and ``2``; any greater would not
 quite make sense. DSSP uses two to store the H-bonds with lowest energy (most stable).
 """
-struct HBondDict{N,T<:AbstractFloat}
-    handle::UInt64
-    donor::NTuple{N,UInt64}
-    acceptor::NTuple{N,UInt64}
-    energy::NTuple{N,T}
+struct HBondDict{N,T<:AbstractFloat} <: AbstractDict{Symbol,Tuple{UInt64,T}}
+    interacting_residues::MVector{N,UInt64}
+    energies::MVector{N,T}
+    base_size::Int
+    
+    function HBondDict(::Val{M}, ::Type{Tp}) where {M,Tp}
+        inter = @MVector zeros(UInt64, M)
+        energies = @MVector zeros(Tp, M)
+        return new{M,Tp}(inter, energies, M >> 1)
+    end
+end
+function HBondDict(base::Integer)
+    !(0 < base < 3) && error("try using 1 or 2 hydrogen bonds")
+    return HBondDict(Val(2*base), float(Int))
+end
+
+function Base.iterate(dict::HBondDict{N}, state=1) where N
+    state > N && return nothing
+    (; interacting_residues, energies, base_size) = dict
+    ## donors are stored first relative to acceptors
+    q = state > base_size ? (:a) : (:d)
+    sym = Symbol(q, state >> 1)
+    tpl = (interacting_residues[state], energies[state])
+    
+    return (sym=>tpl, state+1)
+end
+
+function Base.getindex(dict::HBondDict, s::Symbol)
+    idx = _parsehbsymb(s, dict.base_size)
+    return (dict.interacting_residues[idx], dict.energies[idx])
+end
+
+function Base.setindex!(dict::HBondDict, val, s::Symbol)
+    idx = _parsehbsymb(s, dict.base_size)
+    res, energy = val
+    dict.interacting_residues[idx] = res
+    dict.energies[idx] = energy
+    nothing
+end
+
+@inline function _parsehbsymb(s::Symbol, bsz)
+    str = String(s)
+    @assert length(str) == 2    # can't have 20 hbonds to a residue
+    a, b = str                  # assume user is correct
+    b_ = parse(Int, b)
+    if a == 'a'
+        return b_
+    elseif a == 'd'
+        ## TODO: be more helpful with the bounds error message
+        return ifelse(bsz < b_, throw(BoundsError()), b_ + bsz)
+    else
+        error("Invalid access; use 'a' or 'd' for first character")
+    end
 end
 
