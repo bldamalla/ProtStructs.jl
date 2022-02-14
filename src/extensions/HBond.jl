@@ -123,3 +123,54 @@ end
     end
 end
 
+"""
+    hbondenergy(frame, donor, acceptor; method=:dist)
+
+Calculate the (amide) hydrogen bond energy between a donor residue and an 
+acceptor residue in a frame. Both nonframe arguments are _indices_ in the
+`StructureFrame`. Defaults to a mimicked method of that _currently_ used
+in DSSP (using distances, although there are plans to use angles).
+A calculation using angles `method=:angle` is provided in this module.
+
+# Keyword arguments
++ `method`: Defaults to `:dist`. Method used for energy calculation.
+"""
+function hbondenergy(frame::StructureFrame, donor_i, acceptor_i; method=:dist)
+    (; at_pos, res_list) = frame
+
+    calcfunc = method == :angle ? (_hbenergy_angle) : (_hbenergy_dist)
+    donor = res_list[donor_i]; acceptor = res_list[acceptor_i]
+    ## get N and H in donor; C and O in acceptor
+    Nid = donor[:N]; Hid = donor[:H]
+    Cid = acceptor[:C]; Oid = acceptor[:O]
+
+    Npos = at_pos[Nid]; Hpos = at_pos[Hid]
+    Cpos = at_pos[Cid]; Opos = at_pos[Oid]
+
+    return calcfunct(Npos, Hpos, Cpos, Opos)
+end
+
+function _hbenergy_dist(Npos, Hpos, Cpos, Opos)
+    ## DSSP default implementation
+    KK = DDSPConstants[:coupleConstant]     # coupling constant from dict
+    HO = distance(Hpos, Opos); HC = distance(Hpos, Cpos)
+    NO = distance(Npos, Opos); NC = distance(Npos, Cpos)
+
+    ## coulomb interaction from two dipoles
+    return KK * (1/HO - 1/HC + 1/NO - 1/NC)
+end
+
+function _hbenergy_angle(Npos, Hpos, Cpos, Opos)
+    ## method using "angles"
+    KK = DSSPConstants[:coupleConstant]     # coupling constant from dict
+    ## direction of dipole moment
+    NHp = Hpos - Npos; COp = Cpos - Opos
+    ## centers of dipoles
+    NHc = (Npos + Hpos) / 2; COc = (Cpos + Opos) / 2
+    R = COc - NHc; r = norm(disp)
+
+    ## "keesom" interaction of two dipoles
+    pre = (NHp⋅COp) / r^3 - 3 * (NHp⋅R) * (COp⋅R) / r^5
+    return KK * pre
+end
+
