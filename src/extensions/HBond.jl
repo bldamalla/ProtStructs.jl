@@ -86,8 +86,8 @@ function Base.iterate(dict::HBondDict{N}, state=1) where N
     state > N && return nothing
     (; interacting_residues, energies, base_size) = dict
     ## donors are stored first relative to acceptors
-    q = state > base_size ? (:a) : (:d)
-    sym = Symbol(q, state >> 1)
+    da, len = ifelse(state > base_size, (:a, state-base_size), (:d, state))
+    sym = Symbol(da, len)
     tpl = (interacting_residues[state], energies[state])
     
     return (sym=>tpl, state+1)
@@ -112,10 +112,10 @@ end
     a, b = str                  # assume user is correct
     b_ = parse(Int, b)
     if a == 'a'
-        return b_
+        return b_ + bsz
     elseif a == 'd'
-        ## TODO: be more helpful with the bounds error message
-        return ifelse(bsz < b_, throw(BoundsError()), b_ + bsz)
+        ## TODO: this is completely wrong, but it throws something
+        return ifelse(b_ < bsz, b_, b_+bsz)
     else
         error("Invalid access; use 'a' or 'd' for first character")
     end
