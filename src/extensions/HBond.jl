@@ -81,6 +81,8 @@ function HBondDict(base::Integer)
     !(0 < base < 3) && error("try using 1 or 2 hydrogen bonds")
     return HBondDict(Val(2*base), float(Int))
 end
+Base.length(::HBondDict{N}) where N = N
+Base.size(::HBondDict{N}) where N = (2,N>>1)
 
 function Base.iterate(dict::HBondDict{N}, state=1) where N
     state > N && return nothing
@@ -106,7 +108,7 @@ function Base.setindex!(dict::HBondDict, val, s::Symbol)
     nothing
 end
 
-@inline function _parsehbsymb(s::Symbol, bsz)
+@noinline function _parsehbsymb(s::Symbol, bsz)
     str = String(s)
     @assert length(str) == 2    # can't have 20 hbonds to a residue
     a, b = str                  # assume user is correct
