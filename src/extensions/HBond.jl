@@ -1,7 +1,7 @@
 ## extensions/HBond.jl --- models for hydrogen bonding
 
 export addprotons!
-export HBondDict
+export HBondDict, hbondenergy
 
 """
     addprotons!(fr::StructureFrame)
@@ -130,7 +130,8 @@ Calculate the (amide) hydrogen bond energy between a donor residue and an
 acceptor residue in a frame. Both nonframe arguments are _indices_ in the
 `StructureFrame`. Defaults to a mimicked method of that _currently_ used
 in DSSP (using distances, although there are plans to use angles).
-A calculation using angles `method=:angle` is provided in this module.
+An _approximate_ potential using dot products `method=:dot` is provided 
+in this module.
 
 # Keyword arguments
 + `method`: Defaults to `:dist`. Method used for energy calculation.
@@ -138,7 +139,7 @@ A calculation using angles `method=:angle` is provided in this module.
 function hbondenergy(frame::StructureFrame, donor_i, acceptor_i; method=:dist)
     (; at_pos, res_list) = frame
 
-    calcfunc = method == :angle ? (_hbenergy_angle) : (_hbenergy_dist)
+    calcfunc = method == :dot ? (_hbenergy_dot) : (_hbenergy_dist)
     donor = res_list[donor_i]; acceptor = res_list[acceptor_i]
     ## get N and H in donor; C and O in acceptor
     Nid = donor[:N]; Hid = donor[:H]
@@ -160,8 +161,8 @@ function _hbenergy_dist(Npos, Hpos, Cpos, Opos)
     return KK * (1/HO - 1/HC + 1/NO - 1/NC)
 end
 
-function _hbenergy_angle(Npos, Hpos, Cpos, Opos)
-    ## method using "angles"
+function _hbenergy_dot(Npos, Hpos, Cpos, Opos)
+    ## method using dot
     KK = DSSPConstants[:coupleConstant]     # coupling constant from dict
     ## direction of dipole moment
     NHp = Hpos - Npos; COp = Cpos - Opos
@@ -170,7 +171,7 @@ function _hbenergy_angle(Npos, Hpos, Cpos, Opos)
     R = COc - NHc; r = norm(disp)
 
     ## "keesom" interaction of two dipoles
-    pre = (NHp⋅COp) / r^3 - 3 * (NHp⋅R) * (COp⋅R) / r^5
+    pre = KK * (NHp⋅COp) / r^3 - 3 * (NHp⋅R) * (COp⋅R) / r^5
     return KK * pre
 end
 
