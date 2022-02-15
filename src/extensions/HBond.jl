@@ -117,7 +117,7 @@ end
         return b_ + bsz
     elseif a == 'd'
         ## TODO: this is completely wrong, but it throws something
-        return ifelse(b_ < bsz, b_, b_+bsz)
+        return ifelse(b_ > bsz, b_+bsz, b_)
     else
         error("Invalid access; use 'a' or 'd' for first character")
     end
