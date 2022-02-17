@@ -25,8 +25,13 @@
         @test let Q = [Residue(top, i-1) for i in 1:count_residues(top)]
             flag = true
             for (ch_, ext_) in zip(Q, extracted.res_list)
-                flag &= (name(ch_) == ext_.name)
-                flag &= (atoms(ch_) == ext_.at_list)
+                flag &= (Symbol(name(ch_)) == ext_.name)
+                flag &= all(∈(atoms(ch_).+1), values(ext_.at_dict))
+                flag &= begin
+                    l = "is_standard_pdb" in list_properties(ch_)
+                    l || return true
+                    l &= property(ch_, "is_standard_pdb") == ext_.standard_pdb
+                end
                 flag || break
             end
             flag
@@ -36,7 +41,7 @@
         @test let Q = [Atom(fr, i-1) for i in 1:size(fr)]
             flag = true
             for (ch_, ext_) in zip(Q, extracted.at_list)
-                flag &= (name(ch_) == ext_.name)
+                flag &= (Symbol(name(ch_)) == ext_.name)
                 flag &= (type(ch_) == ext_.type)
                 flag &= (mass(ch_) == ext_.mass)
                 flag &= (charge(ch_) == ext_.charge)
