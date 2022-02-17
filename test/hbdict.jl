@@ -31,6 +31,27 @@
     dict[:d2] = (3, 4)
     @test (dict.interacting_residues[2] == 3 && dict.energies[2] == 4)
     @test_throws ErrorException dict[:x2] = (3, 4)
+
+    ## donor/acceptor
+    @test 3 in acceptorindices(dict)
+    @test !(4 in acceptorindices(dict)) 
+    @test 3 in donorindices(dict)
+    @test !(4 in acceptorindices(dict))
+
+    @testset "hbonded function" begin
+        ## test vector containing 2 dicts
+        vec = [HBondDict(2), HBondDict(2)]
+        ## initialize the testable parts of dictionaries
+        ## format is (index, energy)
+        vec[1][:d1] = (2, -0.9)
+        vec[1][:a1] = (3, -1.5)
+        vec[2][:a1] = (1, -0.9)
+        vec[2][:d2] = (3, -6.9)
+
+        @test hbonded(vec, 1, 2)
+        @test_throws BoundsError hbonded(vec, 3, 1)
+        @test_throws BoundsError hbonded(vec, 2, 3)
+    end
 end
 
 @testset "HBondDict (1 element) (get/set/iterate)" begin
@@ -62,5 +83,21 @@ end
     dict[:d1] = (3, 4)
     @test (dict.interacting_residues[1] == 3 && dict.energies[1] == 4)
     @test_throws ErrorException dict[:x2] = (3, 4)
+
+    ## donor/acceptor
+    @test 3 in acceptorindices(dict)
+    @test !(4 in acceptorindices(dict)) 
+    @test 3 in donorindices(dict)
+    @test !(4 in acceptorindices(dict))
+
+    @testset "hbonded function" begin
+        vec = [HBondDict(1), HBondDict(1)]
+        vec[2][:a1] = (1, -0.9)
+        vec[1][:d1] = (2, -0.9)
+
+        @test hbonded(vec, 1, 2)
+        @test_throws BoundsError hbonded(vec, 3, 2)
+        @test_throws BoundsError hbonded(vec, 1, 3)
+    end
 end
 

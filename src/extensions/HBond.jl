@@ -1,7 +1,11 @@
 ## extensions/HBond.jl --- models for hydrogen bonding
 
 export addprotons!
-export HBondDict, hbondenergy
+export HBondDict, hbondenergy, hbonded
+export donors, donorindices, acceptors, acceptorindices
+
+export nturn, alphaturn, shortturn, piturn
+export parallelbridge, antiparallelbridge
 
 """
     addprotons!(fr::StructureFrame)
@@ -108,6 +112,13 @@ function Base.setindex!(dict::HBondDict, val, s::Symbol)
     nothing
 end
 
+donors(dict::HBondDict{N}) where N = Iterators.take(dict, N>>1)
+acceptors(dict::HBondDict{N}) where N = Iterators.drop(dict, N>>1)
+donorindices(dict) = (i for (_, (i, _)) in donors(dict))
+acceptorindices(dict) = (i for (_, (i, _)) in acceptors(dict))
+
+## TODO: CREATE A VECTOR OF INITIALIZED HBONDDICT FROM FRAME INPUT
+
 @noinline function _parsehbsymb(s::Symbol, bsz)
     str = String(s)
     @assert length(str) == 2    # can't have 20 hbonds to a residue
@@ -173,5 +184,33 @@ function _hbenergy_dot(Npos, Hpos, Cpos, Opos)
     ## "keesom" interaction of two dipoles
     pre = KK * (NHp⋅COp) / r^3 - 3 * (NHp⋅R) * (COp⋅R) / r^5
     return KK * pre
+end
+
+"""
+    hbonded(hbdicts, res_i, res_j) -> Bool
+
+Check if the residue at _index_ `res_i` acts as a hydrogen bond acceptor to
+the residue at `res_j` based on the list of dictionaries `hbdicts`.
+Equivalently, if residue at `res_j` acts as a hydrogen bond donor to
+the residue at `res_i`.
+"""
+function hbonded(hbdicts::Vector{<:HBondDict}, i, j)
+    ## annotate with @boundscheck??
+    checkbounds(hbdicts, i); checkbounds(hbdicts, j)
+    @inbounds i in acceptorindices(hbdicts[j])
+end
+
+nturn(hbdicts, i, n) = hbonded(hbdicts, i, i+n)
+alphaturn(hbdicts, i) = nturn(hbdicts, i, 4)
+shortturn(hbdicts, i) = nturn(hbdicts, i, 3)
+piturn(hbdicts, i) = nturn(hbdicts, i, 5)
+
+parallelbridge(hbdicts, i, j) = begin
+    t1 = hbonded(hbdicts, i, j-1) && hbonded(hbdicts, j, i+1)
+    t1 || hbonded(hbdicts, j-1, i) && hbonded(hbdicts, i, j+1)
+end
+antiparallelbridge(hbdicts, i, j) = begin
+    t1 = hbonded(hbdicts, i, j) && hbonded(hbdicts, j, i)
+    t1 || hbonded(hbdicts, i-1, j+1) && hbonded(hbdicts, j-1, i+1)
 end
 
