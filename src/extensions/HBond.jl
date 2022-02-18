@@ -200,11 +200,35 @@ function hbonded(hbdicts::Vector{<:HBondDict}, i, j)
     @inbounds i in acceptorindices(hbdicts[j])
 end
 
+## TODO: check for chain breaks between indices i and j
+### best solution i can think of is a new data struct that is produced linearly
+### relative to number of residues; and can be searched logarithmically
+### relative to number of (separate) chains (tree-like)
+
+"""
+    nturn(hbdicts, i, n) -> Bool
+    alphaturn(hbdicts, i) = nturn(hbdicts, i, 4)
+    shortturn(hbdicts, i) = nturn(hbdicts, i, 3)
+    piturn(hbdicts, i) = nturn(hbdicts, i, 5)
+
+Check if there is an ``n``-turn starting from residue with index `i`. Uses
+the vector `hbdicts` as reference. DSSP defines turns with specific `n` such
+as ``3,4,5``-turns. These are `shortturn`, `alphaturn`, and `piturn`,
+respectively, in this module.
+"""
 nturn(hbdicts, i, n) = hbonded(hbdicts, i, i+n)
 alphaturn(hbdicts, i) = nturn(hbdicts, i, 4)
 shortturn(hbdicts, i) = nturn(hbdicts, i, 3)
 piturn(hbdicts, i) = nturn(hbdicts, i, 5)
 
+"""
+    parallelbridge(hbdicts, i, j)
+    antiparallelbridge(hbdicts, i, j)
+
+Check if there is an elementary bridge between the residue with indices `i`
+and `j`. Check the original DSSP reference (link in README) or the Julia
+source codes for the definitions of these bridges.
+"""
 parallelbridge(hbdicts, i, j) = begin
     t1 = hbonded(hbdicts, i, j-1) && hbonded(hbdicts, j, i+1)
     t1 || hbonded(hbdicts, j-1, i) && hbonded(hbdicts, i, j+1)
