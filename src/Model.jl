@@ -149,5 +149,6 @@ function JConnectivity(top::Chemfiles.Topology)
 end
 
 ### extension models
+include("extensions/FrameTools.jl")
 include("extensions/HBond.jl")
 
