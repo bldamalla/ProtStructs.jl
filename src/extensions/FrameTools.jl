@@ -53,23 +53,22 @@ function addprotons!(fr::StructureFrame; attempt_conn=false)
 
     ## drop first element in iteration
     for i in Iterators.drop(eachindex(res_list), 1)
-        res = res_list[i]
+        res = @inbounds res_list[i]
         ## don't do anything if it's not a standard pdb residue (protein)
         # N terminal end or proline residue; skip
-        (res.standard_pdb || res.name) || continue
+        (res.standard_pdb || res.name == :PRO) || continue
 
         ## calculate new position and other shit for proton
-        Nid = getatom(res, :N); CAid = getatom(res, :CA)    ## N and alpha carbon
-        Cid = getatom(res, :C); Oid  = getatom(res, :O)     ## carbonyl C and O
+        Nid = getatom(res, :N)          ## amide nitrogen
 
         ## hydrogen assignment 1) position; 2) name; 3) charge; 4) type/mass
         Hpos = at_pos[Nid]  # initially set position to amide N
-                            # this is near the case for N terminus
-                            # I have no idea why tho (for NTC)
 
         # carbonyl of previous residue; estimate H from that
         # H must be opposite O and peptide bond is estimated planar
-        res_prev = res_list[i-1]
+        res_prev = @inbounds res_list[i-1]
+        res_prev.standard_pdb || continue
+
         Oprevid = getatom(res_prev, :O); Cprevid = getatom(res_prev, :C)
         _opos = at_pos[Oprevid]; _cpos = at_pos[Cprevid]
         codist = distance(_opos, _cpos)
