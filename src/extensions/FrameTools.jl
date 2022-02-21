@@ -34,10 +34,10 @@ function getchaindict(fr::StructureFrame)
         end
 
         ## stop condition: when on diff chain or not standard residue (PDB)
-        if !(pdb_ && chid_ == current_ch)
+        if !(pdb_ && Symbol(chid_) == current_ch)
             stopped = true
             stop = i-1
-            dct[current_ch] = start:stop
+            push!(dct, current_ch=>(start:stop))
         end
     end
 
@@ -60,7 +60,7 @@ function addprotons!(fr::StructureFrame; attempt_conn=false)
         res = @inbounds res_list[i]
         ## don't do anything if it's not a standard pdb residue (protein)
         # N terminal end or proline residue; skip
-        (res.standard_pdb || res.name == :PRO) || continue
+        (!res.standard_pdb || res.name == :PRO) && continue
 
         ## calculate new position and other shit for proton
         Nid = getatom(res, :N)          ## amide nitrogen
@@ -82,7 +82,7 @@ function addprotons!(fr::StructureFrame; attempt_conn=false)
         ## DSSP has its own constants for calculating Hbond energy
         Hatom = JAtom(:H, "H", 1.008, float(0))
         push!(at_list, Hatom); push!(at_pos, Hpos)
-        Hidx = len+i-1                  # -1 because first index was dropped
+        Hidx = length(at_pos)
         setatom!(res, Hatom, Hidx)
 
         ## attempt to add bonds to the connectivity list; defaults to false

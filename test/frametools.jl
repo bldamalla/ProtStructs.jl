@@ -20,7 +20,9 @@
             Q = true
             for i in eachindex(rlist)
                 ## nonstandard (PDB) residues should not be in the chaindict
-                checker = @inbounds ifelse(rlist[i].standard_pdb, 1, 0)
+                res = @inbounds rlist[i]
+                tst = !(res.standard_pdb)
+                checker = @inbounds ifelse(tst, 0, 1)
                 count = 0
                 for (_, range_) in test_dict
                     if i in range_ count += 1 end
@@ -66,7 +68,9 @@ end
             ## if indexing works as expected
             @test let rlist = extracted.res_list
                 Q = true
-                for res in rlist
+                ## drop one because proton is not added there
+                for res in Iterators.drop(rlist, 1)
+                    (res.name == :PRO || !res.standard_pdb) && continue
                     Q &= (at_list[getatom(res, :H)].name == :H)
                     Q || break
                 end
@@ -75,23 +79,25 @@ end
             ## number of protons added is same as standard protein res - 1
             @test let rlist = extracted.res_list
                 ct = 0
-                for res in rlist
+                for res in Iterators.drop(rlist, 1)
+                    (res.name == :PRO || !res.standard_pdb) && continue
                     for (name, _) in res.at_dict
-                        name == :H || continue
-                        ct += 1
+                        if name == :H ct += 1 end
                     end
                 end
-                ## -1 because the first residue is skipped
-                ct == count(res->(res.standard_pdb), rlist; init=-1)
+                ct == count(Iterators.drop(rlist, 1)) do res
+                    res.standard_pdb && res.name != :PRO
+                end
             end
         end
 
         ## check that the bond length is 1A (as in DSSP HBond method)
         @test let (; at_pos, res_list) = extracted
             Q = true
-            for res in res_list
+            ## drop one because proton is not added there
+            for res in Iterators.drop(res_list, 1)
                 ## skip those that arent standard protein residues
-                res.standard_pdb || continue
+                (res.name == :PRO || !res.standard_pdb) && continue
                 Npos = at_pos[getatom(res, :N)]
                 Hpos = at_pos[getatom(res, :H)]
                 Q &= isapprox(ProtStructs.distance(Npos, Hpos), 1)
@@ -107,7 +113,7 @@ end
             for i in Iterators.drop(eachindex(res_list), 1)
                 res = @inbounds res_list[i]
                 res_prev = @inbounds res_list[i-1]
-                res.standard_pdb || continue
+                (res.name == :PRO || !res.standard_pdb) && continue
                 res_prev.standard_pdb || continue
                 Opos = at_pos[getatom(res_prev, :O)]
                 Cpos = at_pos[getatom(res_prev, :C)]
@@ -128,7 +134,7 @@ end
             for i in Iterators.drop(eachindex(res_list), 1)
                 res = @inbounds res_list[i]
                 res_prev = @inbounds res_list[i-1]
-                res.standard_pdb || continue
+                (!res.standard_pdb || res.name == :PRO) && continue
                 res_prev.standard_pdb || continue
                 Opos = at_pos[getatom(res_prev, :O)]
                 Cpos = at_pos[getatom(res_prev, :C)]
