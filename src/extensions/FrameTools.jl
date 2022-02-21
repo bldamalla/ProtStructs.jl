@@ -15,6 +15,8 @@ function getchaindict(fr::StructureFrame)
     current_ch = :o
     start = stop = zero(UInt)
     stopped = true
+
+    (; res_list) = fr
     for i in eachindex(res_list)
         res = @inbounds res_list[i]
 
@@ -27,7 +29,7 @@ function getchaindict(fr::StructureFrame)
         if stopped
             !pdb_ && continue
             start = stop = i
-            current_ch = chid_
+            current_ch = Symbol(chid_)
             stopped = false
         end
 
@@ -38,6 +40,8 @@ function getchaindict(fr::StructureFrame)
             dct[current_ch] = start:stop
         end
     end
+
+    return dct
 end
 
 """
@@ -76,7 +80,7 @@ function addprotons!(fr::StructureFrame; attempt_conn=false)
 
         ## make the actual atom; i have no idea about charge tbh set to 0
         ## DSSP has its own constants for calculating Hbond energy
-        Hatom = Jatom(:H, "H", 1.008, 0)
+        Hatom = JAtom(:H, "H", 1.008, float(0))
         push!(at_list, Hatom); push!(at_pos, Hpos)
         Hidx = len+i-1                  # -1 because first index was dropped
         setatom!(res, Hatom, Hidx)

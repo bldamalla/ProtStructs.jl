@@ -19,7 +19,7 @@ function anglespan(a, b, c)
     Δ1 = a - b; n1 = norm(Δ1)
     Δ2 = c - b; n2 = norm(Δ2)
     (n1 == 0 || n2 == 0) && error("two positions overlap")
-    cos_ = dot(Δ1, Δ2) / norm(Δ1) / norm(Δ2)
+    cos_ = Δ1⋅Δ2 / norm(Δ1) / norm(Δ2)
     cos_ >= 1 && return 0        ## handle "overflow?" cases where cos_ ∉ [-1,1]
     cos_ <= -1 && return π
     acos(cos_)

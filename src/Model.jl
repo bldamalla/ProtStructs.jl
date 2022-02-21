@@ -129,7 +129,7 @@ Sets an atom to a residue.
 **Note**: This does not check if the atom with a given `.name` is already in
 the residue and instead mutates it.
 """
-addatom!(res, atom::JAtom, idx) = (res.at_dict[atom.name] = idx)
+setatom!(res, atom::JAtom, idx) = (res.at_dict[atom.name] = idx)
 
 function JConnectivity(top::Chemfiles.Topology)
     bonds_ = map(Iterators.partition(Chemfiles.bonds(top), 2)) do (i, j)
