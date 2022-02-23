@@ -52,7 +52,7 @@ end
 
 struct StructureFrame
     step::UInt64                    ## timestep probed (only one for PDB)
-    at_pos::Vector{SVector{3,<:AbstractFloat}}
+    at_pos::Vector{SVector{3,T}} where T <: AbstractFloat
     at_list::Vector{JAtom}
     res_list::Vector{JResidue}
     conn::JConnectivity
@@ -129,7 +129,7 @@ Sets an atom to a residue.
 **Note**: This does not check if the atom with a given `.name` is already in
 the residue and instead mutates it.
 """
-addatom!(res, atom::JAtom, idx) = (res.at_dict[atom.name] = idx)
+setatom!(res, atom::JAtom, idx) = push!(res.at_dict, atom.name=>idx)
 
 function JConnectivity(top::Chemfiles.Topology)
     bonds_ = map(Iterators.partition(Chemfiles.bonds(top), 2)) do (i, j)
@@ -149,5 +149,6 @@ function JConnectivity(top::Chemfiles.Topology)
 end
 
 ### extension models
+include("extensions/FrameTools.jl")
 include("extensions/HBond.jl")
 
