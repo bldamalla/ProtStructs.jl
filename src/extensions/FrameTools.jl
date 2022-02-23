@@ -13,7 +13,7 @@ function getchaindict(fr::StructureFrame)
     dct = Dict{Symbol,UnitRange{UInt}}()
 
     current_ch = :o
-    start = stop = zero(UInt)
+    start = stop = one(UInt)
     stopped = true
 
     (; res_list) = fr
