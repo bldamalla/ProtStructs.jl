@@ -28,7 +28,7 @@ function getchaindict(fr::StructureFrame)
         ## start condition: when previously stopped, but encounter standard residue
         if stopped
             !pdb_ && continue
-            start = stop = i
+            stop = i
             current_ch = Symbol(chid_)
             stopped = false
         end
@@ -38,6 +38,8 @@ function getchaindict(fr::StructureFrame)
             stopped = true
             stop = i-1
             push!(dct, current_ch=>(start:stop))
+            ## restart start index
+            start = i
         end
     end
 
