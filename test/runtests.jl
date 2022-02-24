@@ -10,4 +10,5 @@ const dataloc = joinpath(@__DIR__, "../data")
     # extraction from Chemfiles
     include("extractions.jl")
     include("hbdict.jl")
+    include("parser.jl")
 end
