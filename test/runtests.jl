@@ -11,4 +11,5 @@ const dataloc = joinpath(@__DIR__, "../data")
     include("extractions.jl")
     include("frametools.jl")
     include("hbdict.jl")
+    include("parser.jl")
 end
