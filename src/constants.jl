@@ -1,12 +1,12 @@
 ## constants.jl -- necessary constants for setting up
 
 """
-    ProteinNames
+    AminoAcidNames
 
 A `Dict` of three-letter amino acid residue codes and their corresponding
 one-letter codes.
 """
-const ProteinNames = Dict(
+const AminoAcidNames = Dict(
     :ALA => :A, :CYS => :C,
     :ASP => :D, :GLU => :E,
     :PHE => :F, :GLY => :G,
@@ -18,7 +18,7 @@ const ProteinNames = Dict(
     :THR => :T, :VAL => :V,
     :TRP => :W, :TYR => :Y
 )
-const kProteinNames = keys(ProteinNames)
+const kAminoAcidNames = keys(AminoAcidNames)
 
 """
     Protstructs.DSSPConstants

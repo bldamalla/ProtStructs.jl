@@ -4,7 +4,7 @@
 ## I guess, it is fine to reload the data from extractions
 
 @testset "Chain Dict" begin
-    Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+    Trajectory(joinpath(dataloc, fname)) do traj
         ## stuff from Chemfiles
         fr = read(traj)
         top = Topology(fr)
@@ -60,6 +60,14 @@ end
         extracted = extractframe(fr)
         has_nuc = fname == "3sn2.pdb"
         addprotons!(extracted; has_na=has_nuc)
+        kAAN = ProtStructs.kAminoAcidNames
+        
+        innertest(res) = begin
+            nuc = has_nuc && res.name ∉ kAAN
+            ## should short circuit when possible; so it makes sense
+            ## that the above holds when the residue is a nucleic acid
+            !res.standard_pdb || res.name == :PRO || nuc
+        end
 
         ## check the number of atoms; make sure length of positions is same
         @testset "Frame details" begin
@@ -71,25 +79,25 @@ end
                 Q = true
                 ## drop one because proton is not added there
                 for res in Iterators.drop(rlist, 1)
-                    (res.name == :PRO || !res.standard_pdb) && continue
+                    innertest(res) && continue
                     Q &= (at_list[getatom(res, :H)].name == :H)
                     Q || break
                 end
                 Q
-            end skip=has_nuc
+            end
             ## number of protons added is same as standard protein res - 1
             @test let rlist = extracted.res_list
                 ct = 0
                 for res in Iterators.drop(rlist, 1)
-                    (res.name == :PRO || !res.standard_pdb) && continue
+                    innertest(res) && continue
                     for (name, _) in res.at_dict
                         if name == :H ct += 1 end
                     end
                 end
                 ct == count(Iterators.drop(rlist, 1)) do res
-                    res.standard_pdb && res.name != :PRO
+                    !innertest(res)
                 end
-            end skip=has_nuc
+            end
         end
 
         ## check that the bond length is 1A (as in DSSP HBond method)
@@ -98,14 +106,14 @@ end
             ## drop one because proton is not added there
             for res in Iterators.drop(res_list, 1)
                 ## skip those that arent standard protein residues
-                (res.name == :PRO || !res.standard_pdb) && continue
+                innertest(res) && continue
                 Npos = at_pos[getatom(res, :N)]
                 Hpos = at_pos[getatom(res, :H)]
                 Q &= isapprox(ProtStructs.distance(Npos, Hpos), 1)
                 Q || break
             end
             Q
-        end skip=has_nuc
+        end
 
         ## check that the carbonyl bond is parallel to the amine bond
         ## (OCN) bond angle = (CNH) bond angle
@@ -114,7 +122,7 @@ end
             for i in Iterators.drop(eachindex(res_list), 1)
                 res = @inbounds res_list[i]
                 res_prev = @inbounds res_list[i-1]
-                (res.name == :PRO || !res.standard_pdb) && continue
+                innertest(res) && continue
                 res_prev.standard_pdb || continue
                 Opos = at_pos[getatom(res_prev, :O)]
                 Cpos = at_pos[getatom(res_prev, :C)]
@@ -127,7 +135,7 @@ end
                 Q || break
             end
             Q
-        end skip=has_nuc
+        end
 
         ## check that the amide is planar (-π/π dihedral angle)
         @test let (; at_pos, res_list) = extracted
@@ -135,7 +143,7 @@ end
             for i in Iterators.drop(eachindex(res_list), 1)
                 res = @inbounds res_list[i]
                 res_prev = @inbounds res_list[i-1]
-                (!res.standard_pdb || res.name == :PRO) && continue
+                innertest(res) && continue
                 res_prev.standard_pdb || continue
                 Opos = at_pos[getatom(res_prev, :O)]
                 Cpos = at_pos[getatom(res_prev, :C)]
@@ -146,7 +154,7 @@ end
                 Q || break
             end
             Q
-        end skip=has_nuc
+        end
     end
 end
 

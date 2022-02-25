@@ -66,7 +66,7 @@ function addprotons!(fr::StructureFrame; has_na=false)
         res = @inbounds res_list[i]
         ## don't do anything if it's not a standard pdb residue (protein)
         # N terminal end or proline residue; skip
-        nucleic_acid = has_na && res.name ∉ kProteinNames
+        nucleic_acid = has_na && res.name ∉ kAminoAcidNames
         (!res.standard_pdb || res.name == :PRO || nucleic_acid) && continue
 
         ## calculate new position and other shit for proton
