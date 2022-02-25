@@ -50,11 +50,10 @@ end
     addprotons!(fr::StructureFrame)
 
 Add backbone protons to residues in the Frame `fr`. Estimate the position of the
-missing proton using the method used by DSSP (within its source code). The bond with
-amide proton is not added to the connectivity.
+missing proton using the method used by DSSP (within its source code).
 """
-function addprotons!(fr::StructureFrame; attempt_conn=false)
-    (; at_pos, at_list, res_list, conn) = fr                ## unpack these
+function addprotons!(fr::StructureFrame)
+    (; at_pos, at_list, res_list) = fr                ## unpack these
     len = length(at_pos)
 
     ## drop first element in iteration
@@ -86,13 +85,6 @@ function addprotons!(fr::StructureFrame; attempt_conn=false)
         push!(at_list, Hatom); push!(at_pos, Hpos)
         Hidx = length(at_pos)
         setatom!(res, Hatom, Hidx)
-
-        ## attempt to add bonds to the connectivity list; defaults to false
-        if attempt_conn
-            push!(conn.bonds, (Nid, Hidx))                          # N-H bond
-            ## TODO: figure out angles, dihedrals, and impropers for proton
-            push!(conn.dihedral, (Oprevid, Cprevid, Nid, Hidx))     # amide dihedral
-        end
     end
 
     nothing

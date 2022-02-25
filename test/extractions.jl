@@ -1,6 +1,6 @@
 ## test/extractions.jl --- check if important properties are preserved
 
-@testset "Model extractions (PDB)" begin
+@testset "Model extractions (PDB); residue unsorted" begin
     Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
         fr = read(traj)
 
@@ -49,44 +49,37 @@
             end
             flag
         end
+    end
+end
 
-        ## check connectivity information
-        conn = extracted.conn
-        @test bonds_count(top) == length(conn.bonds)
-        @test angles_count(top) == length(conn.angles)
-        @test dihedrals_count(top) == length(conn.dihedrals)
-        @test impropers_count(top) == length(conn.impropers)
-        @test let Q = reinterpret(reshape, NTuple{2,UInt64}, bonds(top))
-            flag = true
-            for (ch_, ext_) in zip(Q, conn.bonds)
-                flag &= (ch_ == ext_)
-                flag || break
-            end
-            flag
+@testset "Model extractions (PDB); residue sorted" begin
+    unsorted = Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+        fr = read(traj)
+        extractframe(fr; sort=false)
+    end
+
+    sorted = Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+        fr = read(traj)
+        extractframe(fr; sort=true)
+    end
+
+    ## check if the res list for the "sorted" extraction is actually sorted
+    @test let (; res_list) = sorted
+        issorted(res_list; 
+                 lt=(x,y)->isless(x.standard_pdb, y.standard_pdb), rev=true)
+    end
+
+    ## TRIVIAL: check if the order of the atoms and positions are maintained
+    @test let (pl1, pl2) = (unsorted.at_pos, sorted.at_pos)
+        all(zip(pl1, pl2)) do (p1, p2)
+            isapprox(p1, p2; rtol=1e-9)
         end
-        @test let Q = reinterpret(reshape, NTuple{3,UInt64}, angles(top))
-            flag = true
-            for (ch_, ext_) in zip(Q, conn.angles)
-                flag &= (ch_ == ext_)
-                flag || break
-            end
-            flag
-        end
-        @test let Q = reinterpret(reshape, NTuple{4,UInt64}, dihedrals(top))
-            flag = true
-            for (ch_, ext_) in zip(Q, conn.dihedrals)
-                flag &= (ch_ == ext_)
-                flag || break
-            end
-            flag
-        end
-        @test let Q = reinterpret(reshape, NTuple{4,UInt64}, impropers(top))
-            flag = true
-            for (ch_, ext_) in zip(Q, conn.impropers)
-                flag &= (ch_ == ext_)
-                flag || break
-            end
-            flag
+    end
+
+    @test let (al1, al2) = (unsorted.at_list, sorted.at_list)
+        all(zip(al1, al2)) do (a1, a2)
+            ## just check the names ig
+            a1.name == a2.name
         end
     end
 end

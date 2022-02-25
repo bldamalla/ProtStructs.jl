@@ -1,6 +1,6 @@
 ## test/parser.jl --- for the built in parser (still incomplete)
 
-@testset "Atom/Residue parsing" begin
+@testset "Atom/Residue parsing; residue unsorted" begin
     ## for the mean time use PDB data;
     ## return the result from frame extraction
     extracted = Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
@@ -66,5 +66,29 @@
             res1.at_dict == res2.at_dict    ## なんか微妙だと思うけど;
         end
     end skip=true
+end
+
+@testset "Atom/residue parsing; residue sorted" begin
+    unsorted = read(joinpath(dataloc, "7oo0.pdb"), StructureFrame; sort=false)
+    sorted   = read(joinpath(dataloc, "7oo0.pdb"), StructureFrame; sort=true)
+
+    ## check if the res list for "sorted" parsing is actually sorted
+    @test let (; res_list) = sorted
+        issorted(res_list;
+                 lt=(x,y)->isless(x.standard_pdb, y.standard_pdb), rev=true)
+    end
+
+    ## TRIVIAL: check if the order of the atoms and positions are maintained
+    @test let (pl1, pl2) = (unsorted.at_pos, sorted.at_pos)
+        all(zip(pl1, pl2)) do (p1, p2)
+            isapprox(p1, p2; rtol=1e-9)
+        end
+    end
+
+    @test let (al1, al2) = (unsorted.at_list, sorted.at_list)
+        all(zip(al1, al2)) do (a1, a2)
+            a1.name == a2.name
+        end
+    end
 end
 

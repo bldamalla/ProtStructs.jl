@@ -55,7 +55,6 @@ struct StructureFrame
     at_pos::Vector{SVector{3,T}} where T <: AbstractFloat
     at_list::Vector{JAtom}
     res_list::Vector{JResidue}
-    conn::JConnectivity
 end
 
 """
@@ -64,13 +63,12 @@ end
 Extract `Chemfiles.Frame` to get objects of structs defined in the package.
 Note that not all properties will be inherited/converted.
 """
-function extractframe(fr::Chemfiles.Frame)
+function extractframe(fr::Chemfiles.Frame; sort=false)
     step_ = step(fr)    # frame step
     sz = size(fr)
 
     ## get topology and get residue/connectivity
     top = Chemfiles.Topology(fr)
-    conn = JConnectivity(top)
 
     ## get positions and list of atoms; assert equal size
     pos = Chemfiles.positions(fr)
@@ -86,7 +84,11 @@ function extractframe(fr::Chemfiles.Frame)
         JResidue(Chemfiles.Residue(top, i-1), at_list_)
     end
 
-    return StructureFrame(step_, pos_, at_list_, res_list_, conn)
+    if sort
+        sort!(res_list_, lt=(x,y)->isless(x.standard_pdb,y.standard_pdb), rev=true)
+    end
+
+    return StructureFrame(step_, pos_, at_list_, res_list_)
 end
 
 function JAtom(atom::Chemfiles.Atom)
@@ -130,23 +132,6 @@ Sets an atom to a residue.
 the residue and instead mutates it.
 """
 setatom!(res, atom::JAtom, idx) = push!(res.at_dict, atom.name=>idx)
-
-function JConnectivity(top::Chemfiles.Topology)
-    bonds_ = map(Iterators.partition(Chemfiles.bonds(top), 2)) do (i, j)
-        tuple(i, j)
-    end
-    angles_ = map(Iterators.partition(Chemfiles.angles(top), 3)) do (i, j, k)
-        tuple(i, j, k)
-    end
-    dihedrals_ = map(Iterators.partition(Chemfiles.dihedrals(top), 4)) do (i,j,k,l)
-        tuple(i, j, k, l)
-    end
-    impropers_ = map(Iterators.partition(Chemfiles.impropers(top), 4)) do (i,j,k,l)
-        tuple(i, j, k, l)
-    end
-
-    return JConnectivity(bonds_, angles_, dihedrals_, impropers_)
-end
 
 ### extension models
 include("extensions/FrameTools.jl")

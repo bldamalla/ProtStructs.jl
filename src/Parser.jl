@@ -7,19 +7,17 @@ function Base.read(filename::AbstractString, ::Type{StructureFrame}; kwargs...)
     end
 end
 
-function Base.read(io::IO, ::Type{StructureFrame}; ensemble=false)
+function Base.read(io::IO, ::Type{StructureFrame}; ensemble=false, sort=false)
     ## for each in IO
     # check if it has MODEL record and create frame components
     # populate the frame components accordingly
     # read only the first model if ensemble is false
     ensemble && throw(ArgumentError("ensemble = true is not yet supported"))
 
-    ## create frame components: step = 0, at_pos, at_list, res_list, conn
+    ## create frame components: step = 0, at_pos, at_list, res_list
     at_pos   = SVector{3,Float64}[]
     at_list  = JAtom{Float64}[]
     res_list = JResidue[]
-    conn = JConnectivity(NTuple{2,UInt}[], NTuple{3,UInt}[], 
-                         NTuple{4,UInt}[], NTuple{4,UInt}[])
 
     # read the records
     supposed_to_be_ensemble = false
@@ -64,15 +62,18 @@ function Base.read(io::IO, ::Type{StructureFrame}; ensemble=false)
             finished_with_atoms = true
         end
 
-        ## TODO: HANDLE CONNECTIVITY
-
         if supposed_to_be_ensemble && !ensemble
             ## for now terminate early if found endmdl
             startswith(line, "ENDMDL") && break
         end
     end
 
-    return StructureFrame(0, at_pos, at_list, res_list, conn)
+    if sort
+        ## apparently false < true; if protein residues are first, then rev=true
+        sort!(res_list, lt=(x,y)->isless(x.standard_pdb,y.standard_pdb), rev=true)
+    end
+
+    return StructureFrame(0, at_pos, at_list, res_list)
 end
 
 function parseatomline(line)
