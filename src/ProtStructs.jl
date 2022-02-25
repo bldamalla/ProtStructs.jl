@@ -5,7 +5,7 @@ import LinearAlgebra: norm, ⋅, ×
 import Chemfiles    ## don't bring out names for now
 
 # Write your package code here.
-# include("constants.jl")
+include("constants.jl")
 
 include("Model.jl")
 include("Parser.jl")

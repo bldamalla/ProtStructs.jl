@@ -47,12 +47,17 @@ function getchaindict(fr::StructureFrame)
 end
 
 """
-    addprotons!(fr::StructureFrame)
+    addprotons!(fr::StructureFrame[; has_na])
 
 Add backbone protons to residues in the Frame `fr`. Estimate the position of the
 missing proton using the method used by DSSP (within its source code).
+Optional keyword argument `has_na` indicates whether the frame `fr` has nucleic
+acids added in parsing. Defaults to `false`.
+
+**Note**: Setting `has_na` is important, when it can be shown that the frame has
+nucleic acids.
 """
-function addprotons!(fr::StructureFrame)
+function addprotons!(fr::StructureFrame; has_na=false)
     (; at_pos, at_list, res_list) = fr                ## unpack these
     len = length(at_pos)
 
@@ -61,7 +66,8 @@ function addprotons!(fr::StructureFrame)
         res = @inbounds res_list[i]
         ## don't do anything if it's not a standard pdb residue (protein)
         # N terminal end or proline residue; skip
-        (!res.standard_pdb || res.name == :PRO) && continue
+        nucleic_acid = has_na && res.name ∉ kProteinNames
+        (!res.standard_pdb || res.name == :PRO || nucleic_acid) && continue
 
         ## calculate new position and other shit for proton
         Nid = getatom(res, :N)          ## amide nitrogen

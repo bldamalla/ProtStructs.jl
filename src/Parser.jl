@@ -54,8 +54,8 @@ function Base.read(io::IO, ::Type{StructureFrame}; ensemble=false, sort=false)
             res_atom_dict[jatom.name] = length(at_pos)
         end
 
-        ## small hack: in reaching connectivity, push last recorded residue
-        if !finished_with_atoms && startswith(line, "CONECT")
+        ## small hack: in reaching end, push last recorded residue
+        if !finished_with_atoms && startswith(line, "MASTER")
             ch_str = curr_chain |> String
             jresidue = JResidue(curr_residue, ch_str, res_atom_dict, curr_pdb)
             push!(res_list, jresidue)
@@ -84,7 +84,7 @@ function parseatomline(line)
     pdb_ = startswith(line, "ATOM")
     name_ = line[13:16] |> strip |> q->replace(q, '\''=>'p') |> Symbol
     
-    res_name = line[18:20] |> Symbol
+    res_name = line[18:20] |> strip |> Symbol
     chainid = line[22] |> Symbol
     seqnum = line[23:26] |> strip |> q->parse(Int, q)
 

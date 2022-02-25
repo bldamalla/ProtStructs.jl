@@ -51,14 +51,15 @@
 end
 
 @testset "Backbone amide geometry, etc." begin
-    Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+    Trajectory(joinpath(dataloc, fname)) do traj
         ## stuff from Chemfiles
         fr = read(traj)
         top = Topology(fr)
 
         ## extracted from frame; add protons to it
         extracted = extractframe(fr)
-        addprotons!(extracted)
+        has_nuc = fname == "3sn2.pdb"
+        addprotons!(extracted; has_na=has_nuc)
 
         ## check the number of atoms; make sure length of positions is same
         @testset "Frame details" begin
@@ -75,7 +76,7 @@ end
                     Q || break
                 end
                 Q
-            end
+            end skip=has_nuc
             ## number of protons added is same as standard protein res - 1
             @test let rlist = extracted.res_list
                 ct = 0
@@ -88,7 +89,7 @@ end
                 ct == count(Iterators.drop(rlist, 1)) do res
                     res.standard_pdb && res.name != :PRO
                 end
-            end
+            end skip=has_nuc
         end
 
         ## check that the bond length is 1A (as in DSSP HBond method)
@@ -104,7 +105,7 @@ end
                 Q || break
             end
             Q
-        end
+        end skip=has_nuc
 
         ## check that the carbonyl bond is parallel to the amine bond
         ## (OCN) bond angle = (CNH) bond angle
@@ -126,7 +127,7 @@ end
                 Q || break
             end
             Q
-        end
+        end skip=has_nuc
 
         ## check that the amide is planar (-π/π dihedral angle)
         @test let (; at_pos, res_list) = extracted
@@ -145,7 +146,7 @@ end
                 Q || break
             end
             Q
-        end
+        end skip=has_nuc
     end
 end
 

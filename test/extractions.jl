@@ -1,7 +1,7 @@
 ## test/extractions.jl --- check if important properties are preserved
 
 @testset "Model extractions (PDB); residue unsorted" begin
-    Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+    Trajectory(joinpath(dataloc, fname)) do traj
         fr = read(traj)
 
         extracted = extractframe(fr)
@@ -53,12 +53,12 @@
 end
 
 @testset "Model extractions (PDB); residue sorted" begin
-    unsorted = Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+    unsorted = Trajectory(joinpath(dataloc, fname)) do traj
         fr = read(traj)
         extractframe(fr; sort=false)
     end
 
-    sorted = Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+    sorted = Trajectory(joinpath(dataloc, fname)) do traj
         fr = read(traj)
         extractframe(fr; sort=true)
     end

@@ -3,13 +3,13 @@
 @testset "Atom/Residue parsing; residue unsorted" begin
     ## for the mean time use PDB data;
     ## return the result from frame extraction
-    extracted = Trajectory(joinpath(dataloc, "7oo0.pdb")) do traj
+    extracted = Trajectory(joinpath(dataloc, fname)) do traj
         fr = read(traj)
         extractframe(fr)
     end
 
     ## get the parsed StructureFrame from the same PDB
-    parsed = read(joinpath(dataloc, "7oo0.pdb"), StructureFrame)
+    parsed = read(joinpath(dataloc, fname), StructureFrame)
 
     # check if the atom numbers and lengths are the same
     @test length(extracted.at_pos) == length(parsed.at_pos)
@@ -69,8 +69,8 @@
 end
 
 @testset "Atom/residue parsing; residue sorted" begin
-    unsorted = read(joinpath(dataloc, "7oo0.pdb"), StructureFrame; sort=false)
-    sorted   = read(joinpath(dataloc, "7oo0.pdb"), StructureFrame; sort=true)
+    unsorted = read(joinpath(dataloc, fname), StructureFrame; sort=false)
+    sorted   = read(joinpath(dataloc, fname), StructureFrame; sort=true)
 
     ## check if the res list for "sorted" parsing is actually sorted
     @test let (; res_list) = sorted
