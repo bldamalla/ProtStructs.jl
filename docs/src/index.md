@@ -3,12 +3,17 @@
 ProtStructs.jl is a simple project for analyzing protein structures. So far,
 the project is a layer on `Chemfiles.jl`, which is used to read PDB files.
 
-Plans are to include a small and lightweight parser for PDB files.
+The package provides a small and lightweight parser for PDB files. Obtained
+information is cast into a `StructureFrame` object. So far, not all a lot
+of information is extracted from PDB files.
 
 The model of protein structure is completely different from the hierarchical
 model of BioStructures.jl. In this module, a collection of objects contained
 in a parent group is represented by a `Vector` of indices that _point to_ the
 referred objects.
+
+Abstractions for analysis are planned; however, this will not be until the
+overall model is polished.
 
 ## What does the package provide?
 
@@ -21,10 +26,6 @@ from `Frame` objects from Chemfiles.jl. Extracted information is stored in a
 `StructureFrame` object. This was the preferred way to obtain structural information
 through different formats, and this was thought to allow the analysis of _changes_
 in structural information from a trajectory.
-
-Through benchmarks, it was found out that this method of extraction is 
-_significantly slow_, and it is planned to write a small and lightweight parser 
-in Julia for PDB files.
 
 Naturally, the package aims to provide certain geometric constructs needed for
 protein structure analysis. These include:
@@ -51,7 +52,7 @@ especially for biomolecular simulations involving proteins, the protein topology
 This suggests that there may be no need to allocate data for the protein topology
 in each recorded frame in a trajectory.
 
-[^2]: Except of course when considering bond breaking in reactive force fields
+[^2]: Except of course when considering bond breaking in reactive force fields.
 
 ## Slight disclaimer
 

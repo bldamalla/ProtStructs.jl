@@ -13,7 +13,11 @@ makedocs(
     format = Documenter.HTML(prettyurls=CI),
     pages= [
         "Introduction" => "index.md",
-        # "Getting Started" => "start.md",
+        "Brief walkthrough" => "start.md",
+        "Models" => [
+            "Structure Frames" => "structs/sfs.md",
+            "HBond Dictionary" => "structs/hbdict.md"
+        ]
         # "Hydrogen bonding model" => "hbond.md",
         # "Secondary structure" => "secstruct.md",
         # "Implementation notes" => "impnotes.md"
