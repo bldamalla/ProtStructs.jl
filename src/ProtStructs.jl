@@ -12,5 +12,7 @@ include("Parser.jl")
 include("Assignments.jl")
 
 include("GeomUtils.jl")
+include("FrameGeom.jl")
+# something on contact maps/solvent accessibility
 
 end
