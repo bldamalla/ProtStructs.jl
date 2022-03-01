@@ -1,7 +1,7 @@
 ## FrameGeom.jl -- for geometrical description of Frame contents
 
 export phi, psi, ramachandranangles, omega
-# export kappa, alpha
+export kappa, alpha, hsspangles
 
 const EXTRA_ANGLE_DOCS = """
 Returns `nothing` if cannot be defined.
@@ -76,7 +76,7 @@ end
 """
     omega(frame, i[, chaindict]) ∈ [-pi, pi], Nothing
 
-Get the phi (``ω``) angle of the residue in the frame pointed by index `i`.
+Get the omega (``ω``) angle of the residue in the frame pointed by index `i`.
 $EXTRA_ANGLE_DOCS
 """
 function omega(fr::StructureFrame, i, chaindict=getchaindict(fr))
@@ -100,12 +100,60 @@ function omega(fr::StructureFrame, i, chaindict=getchaindict(fr))
     end |> q->dihedral(q...)
 end
 
+"""
+    kappa(frame, i[, chaindict]) ∈ [0, pi], Nothing
+
+Get the kappa (``κ``) angle of the residue in the fram pointed by index `i`.
+$EXTRA_ANGLE_DOCS
+"""
 function kappa(fr::StructureFrame, i, chaindict=getchaindict(fr))
     ## TODO: get definition from DSSP or HSSP references
+    chain_ = _getchain(i, chaindict)
+    ## totally skip if
+    isnothing(chain_) && return nothing
+
+    (i-2 ∉ chaindict[chain_] || i+2 ∉ chaindict[chain_]) && return nothing
+
+    (; res_list, at_pos) = fr
+
+    idcs = (i-2, i, i+2)
+
+    return map(idcs) do index
+        res = res_list[index]
+        getatom(res, :CA) |> m->at_pos[m]
+    end |> q->anglespan(q...)
 end
 
+"""
+    alpha(frame, i[, chaindict]) ∈ [-pi, pi], Nothing
+    chirality(frame, i, chaindict) ∈ (-1, 0, 1), Nothing
+
+Get the alpha (``α``) angle of the residue in the frame pointed by index `i`.
+Chirality (in HSSP) is defined as the sign of alpha.
+$EXTRA_ANGLE_DOCS
+"""
 function alpha(fr::StructureFrame, i, chaindict=getchaindict(fr))
-    ## TODO: get definition from DSSP main reference
+    ## get chain of residue pointed to by i
+    chain_ = _getchain(i, chaindict)
+    ## totally skip if
+    isnothing(chain_) && return nothing
+
+    (i-1 ∉ chaindict[chain_] || i+2 ∉ chaindict[chain_]) && return nothing
+
+    (; res_list, at_pos) = fr
+    
+    idcs = ntuple(j->i+j-2, 4)
+
+    return map(idcs) do index
+        res = res_list[index]
+        getatom(res, :CA) |> m->at_pos[m]
+    end |> q->dihedral(q...)
+end
+## what is chirality when alpha is ±π
+function chirality(fr, i, chaindict=getchaindict(fr))
+    α = alpha(fr, i, chaindict)
+    isnothing(α) && return nothing
+    return sign(α)
 end
 
 """
@@ -122,6 +170,21 @@ function ramachandranangles(fr::StructureFrame, i, chaindict=getchaindict(fr))
     return phi(fr, i, chaindict), psi(fr, i, chaindict)
 end
 const ϕψ = ramachandranangles
+
+"""
+    hsspangles(frame, i[, chaindict]) -> Tuple
+    ProtStructs.κα(frame, i[, chaindict])
+
+Get `kappa` and `alpha` angles for the residue in the frame pointed by index `i`.
+These angles are used by HSSP in searching for homologous structures.
+Shorthand above is provided, but not exported.
+
+$EXTRA_ANGLES_DOCS
+"""
+function hsspangles(fr::StructureFrame, i, chaindict=getchaindict(fr))
+    return kappa(fr, i, chaindict), alpha(fr, i, chaindict)
+end
+const κα = hsspangles
 
 @noinline function _getchain(i, cdict)
     ## does a linear search 
