@@ -179,7 +179,7 @@ Get `kappa` and `alpha` angles for the residue in the frame pointed by index `i`
 These angles are used by HSSP in searching for homologous structures.
 Shorthand above is provided, but not exported.
 
-$EXTRA_ANGLES_DOCS
+$EXTRA_ANGLE_DOCS
 """
 function hsspangles(fr::StructureFrame, i, chaindict=getchaindict(fr))
     return kappa(fr, i, chaindict), alpha(fr, i, chaindict)

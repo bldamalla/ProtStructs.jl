@@ -3,7 +3,7 @@
 @testset "HBondDict (2 element) (get/set/iterate)" begin
     ## declare a throwaway bonddict
     dict = HBondDict(2)             # check if the constructor works
-    @test_throws ErrorException HBondDict(3)
+    # @test_throws ErrorException HBondDict(3)
     @test_throws ErrorException HBondDict(0)
 
     ## type and iteration
@@ -98,6 +98,71 @@ end
         @test hbonded(vec, 1, 2)
         @test_throws BoundsError hbonded(vec, 3, 2)
         @test_throws BoundsError hbonded(vec, 1, 3)
+    end
+end
+
+@testset "Record functions" begin
+    ## FIRST AND FOREMOST: check if they are defined
+    @test isdefined(ProtStructs, :recorddonor!)
+    @test isdefined(ProtStructs, :recordacceptor!)
+
+    # check for the M ∈ [1, 2, 3] cases
+    @testset "Donor recording" begin
+        for M in 1:5
+            dict = HBondDict(M)
+            # fill in with random energies and indices
+            for k in 1:10
+                # no chance that this is 0
+                recorddonor!(dict, k, -(rand() + 0.1) * 10)
+            end
+
+            # all energies are negative
+            @test let dnrs = donors(dict)
+                all(dnrs) do (_, (_, energy))
+                    energy < 0
+                end
+            end
+
+            # energies should be in increasing order (decreasing bond strength)
+            @test let dnrs = donors(dict)
+                Q = true; prev = -20.0
+                for (_, (_, energy)) in dnrs
+                    Q &= energy > prev
+                    Q || break
+                    prev = energy
+                end
+                Q
+            end
+        end
+    end
+
+    @testset "Acceptor recording" begin
+        for M in 1:5
+            dict = HBondDict(M)
+
+            for k in 1:10
+                # no chance this is 0
+                recordacceptor!(dict, k, -(rand() + 0.1) * 10)
+            end
+
+            # all energies are negative
+            @test let accs = acceptors(dict)
+                all(accs) do (_, (_, energy))
+                    energy < 0
+                end
+            end
+
+            # energies should be in increasing order (decreasing bond strength)
+            @test let accs = acceptors(dict)
+                Q = true; prev = -20.0
+                for (_, (_, energy)) in accs
+                    Q &= energy > prev
+                    Q || break
+                    prev = energy
+                end
+                Q
+            end
+        end
     end
 end
 

@@ -6,6 +6,8 @@ export donors, donorindices, acceptors, acceptorindices
 export nturn, alphaturn, shortturn, piturn
 export parallelbridge, antiparallelbridge
 
+export recorddonor!, recordacceptor!
+
 """
     HBondDict{N,T<:AbstractFloat}
 
@@ -28,7 +30,7 @@ struct HBondDict{N,T<:AbstractFloat} <: AbstractDict{Symbol,Tuple{UInt64,T}}
     end
 end
 function HBondDict(base::Integer)
-    !(0 < base < 3) && error("try using 1 or 2 hydrogen bonds")
+    !(0 < base) && error("try using at least 1 hydrogen bond")
     return HBondDict(Val(2*base), float(Int))
 end
 Base.length(::HBondDict{N}) where N = N
@@ -45,12 +47,12 @@ function Base.iterate(dict::HBondDict{N}, state=1) where N
     return (sym=>tpl, state+1)
 end
 
-function Base.getindex(dict::HBondDict, s::Symbol)
+Base.@propagate_inbounds function Base.getindex(dict::HBondDict, s::Symbol)
     idx = _parsehbsymb(s, dict.base_size)
     return (dict.interacting_residues[idx], dict.energies[idx])
 end
 
-function Base.setindex!(dict::HBondDict, val, s::Symbol)
+Base.@propagate_inbounds function Base.setindex!(dict::HBondDict, val, s::Symbol)
     idx = _parsehbsymb(s, dict.base_size)
     res, energy = val
     dict.interacting_residues[idx] = res
@@ -182,5 +184,39 @@ end
 antiparallelbridge(hbdicts, i, j) = begin
     t1 = hbonded(hbdicts, i, j) && hbonded(hbdicts, j, i)
     t1 || hbonded(hbdicts, i-1, j+1) && hbonded(hbdicts, j-1, i+1)
+end
+
+### ADDING DONORS/ACCEPTORS TO DICTIONARY
+
+"""
+    recorddonor!(hbdict, i, bondenergy)
+    recordacceptor!(hbdict, i, bondenergy)
+
+Record a donor/acceptor to the hydrogen bonding dictionary. The bond is with 
+the residue at index `i`. The corresponding bond energy is `bondenergy`.
+
+Using these functions records entries with increasing energy (decreasing bond
+strength).
+"""
+function recorddonor! end
+function recordacceptor! end
+
+tpes = map((:donor, :acceptor)) do nm
+    Symbol(:record, nm, :!), Symbol(nm, :s)
+end
+
+for (fnm, called) in tpes
+    @eval begin
+        function $fnm(hbdict::HBondDict, index, energy)
+            tr_ix, tr_energy = index, energy
+            for (key, tpl) in $called(hbdict)
+                ix, E = tpl
+                tr_energy < E || continue
+                # reaching here means energy < E; and partial roll starts
+                @inbounds hbdict[key] = tr_ix, tr_energy
+                tr_ix, tr_energy = ix, E
+            end
+        end
+    end
 end
 
