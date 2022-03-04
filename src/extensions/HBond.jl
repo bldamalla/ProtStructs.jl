@@ -165,9 +165,9 @@ as ``3,4,5``-turns. These are `shortturn`, `alphaturn`, and `piturn`,
 respectively, in this module.
 """
 nturn(hbdicts, i, n) = hbonded(hbdicts, i, i+n)
-alphaturn(hbdicts, i) = nturn(hbdicts, i, 4)
-shortturn(hbdicts, i) = nturn(hbdicts, i, 3)
-piturn(hbdicts, i) = nturn(hbdicts, i, 5)
+@doc (@doc nturn) alphaturn(hbdicts, i) = nturn(hbdicts, i, 4)
+@doc (@doc nturn) shortturn(hbdicts, i) = nturn(hbdicts, i, 3)
+@doc (@doc nturn) piturn(hbdicts, i) = nturn(hbdicts, i, 5)
 
 """
     parallelbridge(hbdicts, i, j)
@@ -181,7 +181,7 @@ parallelbridge(hbdicts, i, j) = begin
     t1 = hbonded(hbdicts, i, j-1) && hbonded(hbdicts, j, i+1)
     t1 || hbonded(hbdicts, j-1, i) && hbonded(hbdicts, i, j+1)
 end
-antiparallelbridge(hbdicts, i, j) = begin
+@doc (@doc parallelbridge) antiparallelbridge(hbdicts, i, j) = begin
     t1 = hbonded(hbdicts, i, j) && hbonded(hbdicts, j, i)
     t1 || hbonded(hbdicts, i-1, j+1) && hbonded(hbdicts, j-1, i+1)
 end
@@ -199,10 +199,10 @@ Using these functions records entries with increasing energy (decreasing bond
 strength).
 """
 function recorddonor! end
-function recordacceptor! end
+@doc (@doc recorddonor!) function recordacceptor! end
 
 tpes = map((:donor, :acceptor)) do nm
-    Symbol(:record, nm, :!), Symbol(nm, :s)
+    nm, Symbol(:record, nm, :!), Symbol(nm, :s)
 end
 
 for (fnm, called) in tpes

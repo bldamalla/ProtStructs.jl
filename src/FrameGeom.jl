@@ -169,7 +169,7 @@ $EXTRA_ANGLE_DOCS
 function ramachandranangles(fr::StructureFrame, i, chaindict=getchaindict(fr))
     return phi(fr, i, chaindict), psi(fr, i, chaindict)
 end
-const ϕψ = ramachandranangles
+@doc (@doc ramachandranangles) const ϕψ = ramachandranangles
 
 """
     hsspangles(frame, i[, chaindict]) -> Tuple
@@ -184,7 +184,7 @@ $EXTRA_ANGLE_DOCS
 function hsspangles(fr::StructureFrame, i, chaindict=getchaindict(fr))
     return kappa(fr, i, chaindict), alpha(fr, i, chaindict)
 end
-const κα = hsspangles
+@doc (@doc hsspangles) const κα = hsspangles
 
 @noinline function _getchain(i, cdict)
     ## does a linear search 
