@@ -18,7 +18,7 @@ Index of the residue (in a given topology) is `this.handle`.
 **Note**: Values of `N` that make sense are ``1`` and ``2``; any greater would not
 quite make sense. DSSP uses two to store the H-bonds with lowest energy (most stable).
 """
-struct HBondDict{N,T<:AbstractFloat} <: AbstractDict{Symbol,Tuple{UInt64,T}}
+struct HBondDict{N,T<:AbstractFloat} <: AbstractVector{Tuple{UInt64,T}}
     interacting_residues::MVector{N,UInt64}
     energies::MVector{N,T}
     base_size::Int
@@ -34,53 +34,33 @@ function HBondDict(base::Integer)
     return HBondDict(Val(2*base), float(Int))
 end
 Base.length(::HBondDict{N}) where N = N
-Base.size(::HBondDict{N}) where N = (2,N>>1)
+Base.size(::HBondDict{N}) where N = (N,)
 
 function Base.iterate(dict::HBondDict{N}, state=1) where N
     state > N && return nothing
-    (; interacting_residues, energies, base_size) = dict
+    (; interacting_residues, energies) = dict
     ## donors are stored first relative to acceptors
-    da, len = ifelse(state > base_size, (:a, state-base_size), (:d, state))
-    sym = Symbol(da, len)
-    tpl = (interacting_residues[state], energies[state])
-    
-    return (sym=>tpl, state+1)
+    tpl = @inbounds interacting_residues[state], energies[state]
+    return (tpl, state+1)
 end
 
-Base.@propagate_inbounds function Base.getindex(dict::HBondDict, s::Symbol)
-    idx = _parsehbsymb(s, dict.base_size)
-    return (dict.interacting_residues[idx], dict.energies[idx])
+Base.@propagate_inbounds function Base.getindex(dict::HBondDict, i::Integer)
+    return (dict.interacting_residues[i], dict.energies[i])
 end
 
-Base.@propagate_inbounds function Base.setindex!(dict::HBondDict, val, s::Symbol)
-    idx = _parsehbsymb(s, dict.base_size)
+Base.@propagate_inbounds function Base.setindex!(dict::HBondDict, val, i::Integer)
     res, energy = val
-    dict.interacting_residues[idx] = res
-    dict.energies[idx] = energy
+    dict.interacting_residues[i] = res
+    dict.energies[i] = energy
     nothing
 end
 
 donors(dict::HBondDict{N}) where N = Iterators.take(dict, N>>1)
 acceptors(dict::HBondDict{N}) where N = Iterators.drop(dict, N>>1)
-donorindices(dict) = (i for (_, (i, _)) in donors(dict))
-acceptorindices(dict) = (i for (_, (i, _)) in acceptors(dict))
+donorindices(dict) = (i for (i, _) in donors(dict))
+acceptorindices(dict) = (i for (i, _) in acceptors(dict))
 
 ## TODO: CREATE A VECTOR OF INITIALIZED HBONDDICT FROM FRAME INPUT
-
-@noinline function _parsehbsymb(s::Symbol, bsz)
-    str = String(s)
-    @assert length(str) == 2    # can't have 20 hbonds to a residue
-    a, b = str                  # assume user is correct
-    b_ = parse(Int, b)
-    if a == 'a'
-        return b_ + bsz
-    elseif a == 'd'
-        ## TODO: this is completely wrong, but it throws something
-        return ifelse(b_ > bsz, b_+bsz, b_)
-    else
-        error("Invalid access; use 'a' or 'd' for first character")
-    end
-end
 
 """
     hbondenergy(frame, donor, acceptor; method=:dist)
@@ -202,18 +182,20 @@ function recorddonor! end
 @doc (@doc recorddonor!) function recordacceptor! end
 
 tpes = map((:donor, :acceptor)) do nm
-    nm, Symbol(:record, nm, :!), Symbol(nm, :s)
+    Symbol(:record, nm, :!), Symbol(nm, :s)
 end
 
 for (fnm, called) in tpes
+    offexp = fnm === :recorddonor! ? :(0) : :(hbdict.base_size)
     @eval begin
         function $fnm(hbdict::HBondDict, index, energy)
+            offset = $offexp
             tr_ix, tr_energy = index, energy
-            for (key, tpl) in $called(hbdict)
+            for (key, tpl) in $called(hbdict) |> enumerate
                 ix, E = tpl
                 tr_energy < E || continue
                 # reaching here means energy < E; and partial roll starts
-                @inbounds hbdict[key] = tr_ix, tr_energy
+                @inbounds hbdict[key+offset] = tr_ix, tr_energy
                 tr_ix, tr_energy = ix, E
             end
         end

@@ -87,7 +87,7 @@ the residue
 
 In the DSSP secondary structure assignment scheme, secondary structures are
 determined from hydrogen bonding patterns between backbone elements. For this,
-the module provides the `HBondDict` type for storing information on these.
+the module provides the [`HBondDict`](@ref) type for storing information on these.
 
 ### Proton guessing and placement
 
@@ -99,35 +99,34 @@ of peptide chains can be done through calling
 addprotons!(frame)
 ```
 
-This _mutates_ the passed `StructureFrame` to have protons in its `at_list`
+This _mutates_ the passed StructureFrame to have protons in its `at_list`
 property. Their positions are inferred based on similar rules as with DSSP:
 1. The amide bond remains planar with dihedral angle `\pi`;
-2. The ``N--H`` bond has length ``1`` Angstrom.
+2. The N-H bond has length ``1`` Angstrom.
 
 ### `HBondDict` construct and elementary patterns
 
-Note that `HBondDict <: AbstractDict`, so it can be _iterated_ and accessed like
-a `Dict`. The preferred constructor is `HBondDict(N)` where ``N \in \{1,2\}``.
+Note that `HBondDict <: AbstractVector`, so it can be _iterated_ and accessed like
+a `Vector`. The preferred constructor is `HBondDict(N)` where ``N \in \{1,2\}``.
 This constructs a hydrogen bonding dictionary for a particular residue. Entries
 are stored as `(index, energy)` where `index` is the index in the `res_list`
 property of the _original frame_ to which a specific residue is bonded.
-These can be accessed using symbols such as `:d1` and `:a2`.
 
 As an example, suppose that for a particular residue, we want to record at most
 two residues acting as either donors or acceptors. After some calculations it
 was found that a residue at index `di` acts as a donor with bonding energy `Ei`
 and that a residue at index `aj` acts as an acceptor with bonding energy `Ej`.
-This can be stored in a `HBondDict` as:
+This can be stored in a HBondDict as:
 
 ```julia
-dict = HBondDict(2)     ## store at most two donor or acceptor residues
-dict[:d1] = (di, Ei)    ## store as a first hbond donor
-dict[:a2] = (aj, Ej)    ## store as a second hbond acceptor
+dict = HBondDict(2)             ## store at most two donor or acceptor residues
+recorddonor!(dict, d1, Ei)      ## store as a donor
+recordacceptor!(dict, a2, Ej)   ## store as an acceptor
 ```
 
 Using this construct, simple functions regarding hydrogen bonds in the backbone
-can be defined. The `hbonded` function checks the input dictionary of a residue
-to see if a residue acts as an hydrogen bond _acceptor_.
+can be defined. The [`hbonded`](@ref) function checks the input dictionary of a
+residue to see if a residue acts as an hydrogen bond _acceptor_.
 
 ## Geometry
 
