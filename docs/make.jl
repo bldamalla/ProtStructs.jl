@@ -11,17 +11,18 @@ makedocs(
     authors="Bon Leif Amalla and contributors",
     doctest=false,
     format = Documenter.HTML(prettyurls=CI),
+    modules = [ProtStructs,],
     pages= [
         "Introduction" => "index.md",
         "Brief walkthrough" => "start.md",
         "Models" => [
             "Structure Frames" => "structs/sfs.md",
             # "HBond Dictionary" => "structs/hbdict.md"
-        ]
+        ],
         # "Hydrogen bonding model" => "hbond.md",
         # "Secondary structure" => "secstruct.md",
         # "Implementation notes" => "impnotes.md",
-        # "API Documentation" => "API.md"
+        "API Documentation" => "API.md"
    ]
 )
 

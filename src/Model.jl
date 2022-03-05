@@ -50,6 +50,13 @@ struct JConnectivity
     impropers::Vector{NTuple{4,UInt64}}
 end
 
+"""
+    StructureFrame
+
+Overall model for protein structure. Contains information on the atomic
+coordinates, atom information, and the residues. Is obtained from using
+[`extractframe`](@ref) on a Chemfiles Frame object.
+"""
 struct StructureFrame
     step::UInt64                    ## timestep probed (only one for PDB)
     at_pos::Vector{SVector{3,T}} where T <: AbstractFloat

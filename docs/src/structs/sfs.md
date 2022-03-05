@@ -51,7 +51,7 @@ annotated as `ATOM`. In addition to these, other atoms may be listed such as
 water molecules or ligands such as heme. Atoms of these residues are annotated
 as `HETATM`.
 
-`JResidue` structs have the following properties:
+[`JResidue`](@ref) structs have the following properties:
 + `chainid::String`: chain identifier of the residue in which it belongs
 + `name::Symbol`: name of the residue as described in the PDB input
 + `standard_pdb:Bool`: whether atoms in the residue are annotated with `ATOM` or `HETATM`[^2]
@@ -85,7 +85,7 @@ use `getatom` in code using this behavior.
 
 Atoms are the particles being tracked in full-atom simulations/calculations.
 Representations can contain information such as the mass and charge of the particle.
-The module exports the `JAtom` struct containing the following fields:
+The module exports the [`JAtom`](@ref) struct containing the following fields:
 + `name::Symbol`: atom name that can be used for referencing;
 + `type::String`: atom (nucleus) element type;
 + `mass::T<:AbstractFloat`: atom mass;
@@ -95,6 +95,49 @@ Note that this is only a subset of the information that can be obtained from a
 Chemfiles Frame. There are plans to declare this as a subtype of `AbstractAtom`
 to allow for different atom types containing various pieces of information
 depending on the analyses.
+
+## Tools on StructureFrames
+
+Summarized here are some tools on StructureFrames that can be found useful in
+analysis.
+
+### Backbone proton addition
+
+Not all input files are made equal: some may have protons, while some may not.
+The package provides a function [`addprotons!`](@ref) to add protons to the
+protein backbone (amide hydrogens), when applicable. Positions of protons are
+inferred according to the following rules:
++ Amide functional group (peptide bond) is planar
++ N-H bond length is 1 Angstrom
+
+The second rule is assumed by DSSP in calculating energies of hydrogen bonds
+(for secondary structure assignment). Using this method on structures that
+already have atoms, _does not_ remove atoms from the frame, but instead adds
+the new backbone proton and _replaces_ the reference index to that of the added
+proton using [`setatom!`](@ref).
+
+The function call is
+```julia
+addprotons!(frame)
+```
+
+### Chain dictionary
+
+Sometimes it is useful to get a dictionary of the chain identifiers of each
+residue without having to calculate it all over again. This can potentially
+speed up calculations that rely on chain connectivities. It was found
+necessary to separate this function: a clear disadvantage of not using a
+hierarchical model.
+
+The [`getchaindict`](@ref) function assumes that the input StructureFrame has 
+its standard (PDB) residues arranged by sequence number and that all are 
+within a chain. Normally, nucleic acid chains in crystal structures are 
+labelled in a different chain.
+
+The function call is
+```julia
+chaindict = getchaindict(frame)
+```
 
 # Abstract Frames
 

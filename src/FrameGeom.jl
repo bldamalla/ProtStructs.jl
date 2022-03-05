@@ -150,7 +150,7 @@ function alpha(fr::StructureFrame, i, chaindict=getchaindict(fr))
     end |> q->dihedral(q...)
 end
 ## what is chirality when alpha is ±π
-function chirality(fr, i, chaindict=getchaindict(fr))
+@doc (@doc alpha) function chirality(fr, i, chaindict=getchaindict(fr))
     α = alpha(fr, i, chaindict)
     isnothing(α) && return nothing
     return sign(α)
