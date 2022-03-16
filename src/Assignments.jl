@@ -1,5 +1,9 @@
 ## Assignments.jl --- for secondary structure assignments/classifications
 
+export AbstractAssignment, AbstractCriterion
+export DiscreteCriterion, CompoundCriterion, squash
+export assignmenttype
+
 abstract type AbstractAssignmentLayer end
 abstract type AbstractAssignment end
 abstract type AbstractCriterion{A<:AbstractAssignment} end
@@ -48,6 +52,8 @@ for op in (:+, :-, :|, :&)
     end
 end
 
+Base.:(==)(a1::A, a2::A) where A <: AA = (a1.val == a2.val)
+
 macro Assignment(T, exs...)
     ## create the type T as subtype of AA and look through the exs
     ## behavior is very similar to enum construction
@@ -93,6 +99,7 @@ macro Assignment(T, exs...)
     end
     ## I guess this is to make sure nothing is printed out
     push!(blk.args, :nothing)
+    blk.head = :toplevel
 
     return blk
 end
