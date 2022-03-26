@@ -36,7 +36,7 @@ end
 
 ## TODO: For now, stick with these two squash ops; build more i think
 
-function squash(reduction, criterion::AC{A}...) where A<:AA
+function squash(reduction::Function, criterion::AC{A}...) where A<:AA
     return CompoundCriterion{A}(reduction, criterion)
 end
 squash(criterion...) = squash(Base.:+, criterion...)
