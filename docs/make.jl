@@ -18,6 +18,7 @@ makedocs(
         "Models" => [
             "Structure Frames" => "structs/sfs.md",
             # "HBond Dictionary" => "structs/hbdict.md"
+            "Assignments" => "structs/assignments.md"
         ],
         # "Hydrogen bonding model" => "hbond.md",
         # "Secondary structure" => "secstruct.md",
